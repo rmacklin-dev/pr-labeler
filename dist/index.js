@@ -4130,7 +4130,6 @@ function run() {
         try {
             const token = core.getInput('repo-token', { required: true });
             const configPath = core.getInput('configuration-path', { required: true });
-            const teamsConfigPath = core.getInput('teams-configuration-path', { required: true });
             const prNumber = getPrNumber();
             if (!prNumber) {
                 console.log('Could not get pull request number from context, exiting');
@@ -4141,7 +4140,7 @@ function run() {
             const changedFiles = yield getChangedFiles(client, prNumber);
             const labelGlobs = yield getLabelGlobs(client, configPath);
             core.debug('fetching teams');
-            const teamLabels = new Map(Object.entries(yaml.safeLoad(yield fetchContent(client, teamsConfigPath))));
+            const teamLabels = new Map(Object.entries((yield getConfigurationContents(client, configPath)).team_labels));
             const labels = [];
             for (const [label, globs] of labelGlobs.entries()) {
                 core.debug(`processing ${label}`);
@@ -4194,7 +4193,7 @@ function getLabelGlobs(client, configurationPath) {
         // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
         const configObject = yield getConfigurationContents(client, configurationPath);
         // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
-        return getLabelGlobMapFromObject(configObject);
+        return getLabelGlobMapFromObject(configObject.file_pattern_labels);
     });
 }
 function fetchContent(client, repoPath) {

@@ -26,7 +26,6 @@ async function run() {
   try {
     const token = core.getInput('repo-token', {required: true});
     const configPath = core.getInput('configuration-path', {required: true});
-    const teamsConfigPath = core.getInput('teams-configuration-path', {required: true});
 
     const prNumber = getPrNumber();
     if (!prNumber) {
@@ -44,10 +43,10 @@ async function run() {
     );
 
     core.debug('fetching teams');
-    const teamLabels: Map<string, string[]> = new Map(Object.entries(yaml.safeLoad(await fetchContent(
+    const teamLabels: Map<string, string[]> = new Map(Object.entries((await getConfigurationContents(
       client,
-      teamsConfigPath
-    ))));
+      configPath
+    )).team_labels));
 
     const labels: string[] = [];
     for (const [label, globs] of labelGlobs.entries()) {
@@ -118,7 +117,7 @@ async function getLabelGlobs(
   const configObject: any = await getConfigurationContents(client, configurationPath);
 
   // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
-  return getLabelGlobMapFromObject(configObject);
+  return getLabelGlobMapFromObject(configObject.file_pattern_labels);
 }
 
 async function fetchContent(

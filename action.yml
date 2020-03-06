@@ -7,9 +7,6 @@ inputs:
   configuration-path:
     description: 'The path for the label configurations'
     default: '.github/pr-labeler.yml'
-  teams-configuration-path:
-    description: 'The path for the teams configuration'
-    default: '.github/teams.yml'
 runs:
   using: 'node12'
   main: 'dist/index.js'
