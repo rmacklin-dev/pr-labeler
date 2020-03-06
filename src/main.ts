@@ -43,7 +43,36 @@ async function run() {
     const changedFiles: string[] = await getChangedFiles(client, prNumber);
     const labelGlobs: Map<string, string[]> = await getLabelGlobs(configObject);
 
-    const teamLabelsToMembers: Map<string, string[]> = new Map(Object.entries(configObject.team_labels));
+    var teamLabelsToMembers: Map<string, string[]>;
+    if (configObject.teams_configuration_location) {
+      core.debug(`fetching teams from ${JSON.stringify(configObject.teams_configuration_location)}`);
+      const response: any = await client.repos.getContents({
+        ref: 'master',
+        ...configObject.teams_configuration_location
+      });
+
+      const teamsData = JSON.parse(Buffer.from(response.data.content, response.data.encoding).toString());
+
+      teamLabelsToMembers = new Map(
+        Object.entries(teamsData).map(
+          ([teamName, teamData]) => {
+            if ((<any>teamData).members) {
+              const { members, short } = <any>teamData;
+              const teamLabel = short || teamName;
+
+              const teamGitHubUsernames = Object.values(members).map(member => (<any>member).github);
+
+              return [teamLabel, teamGitHubUsernames];
+            } else {
+              throw new Error('unexpected team data format (expected an object mapping team names to team metadata');
+            }
+
+          }
+        )
+      )
+    } else {
+      teamLabelsToMembers = new Map(Object.entries(configObject.team_labels));
+    }
 
     const labels: string[] = [];
     for (const [label, globs] of labelGlobs.entries()) {

@@ -4142,7 +4142,26 @@ function run() {
             core.debug(`fetching changed files for pr #${prNumber}`);
             const changedFiles = yield getChangedFiles(client, prNumber);
             const labelGlobs = yield getLabelGlobs(configObject);
-            const teamLabelsToMembers = new Map(Object.entries(configObject.team_labels));
+            var teamLabelsToMembers;
+            if (configObject.teams_configuration_location) {
+                core.debug(`fetching teams from ${JSON.stringify(configObject.teams_configuration_location)}`);
+                const response = yield client.repos.getContents(Object.assign({ ref: 'master' }, configObject.teams_configuration_location));
+                const teamsData = JSON.parse(Buffer.from(response.data.content, response.data.encoding).toString());
+                teamLabelsToMembers = new Map(Object.entries(teamsData).map(([teamName, teamData]) => {
+                    if (teamData.members) {
+                        const { members, short } = teamData;
+                        const teamLabel = short || teamName;
+                        const teamGitHubUsernames = Object.values(members).map(member => member.github);
+                        return [teamLabel, teamGitHubUsernames];
+                    }
+                    else {
+                        throw new Error('unexpected team data format (expected an object mapping team names to team metadata');
+                    }
+                }));
+            }
+            else {
+                teamLabelsToMembers = new Map(Object.entries(configObject.team_labels));
+            }
             const labels = [];
             for (const [label, globs] of labelGlobs.entries()) {
                 core.debug(`processing ${label}`);
