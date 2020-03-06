@@ -4183,11 +4183,16 @@ function getChangedFiles(client, prNumber) {
         return changedFiles;
     });
 }
-function getLabelGlobs(client, configurationPath) {
+function getConfigurationContents(client, configurationPath) {
     return __awaiter(this, void 0, void 0, function* () {
         const configurationContent = yield fetchContent(client, configurationPath);
+        return yaml.safeLoad(configurationContent);
+    });
+}
+function getLabelGlobs(client, configurationPath) {
+    return __awaiter(this, void 0, void 0, function* () {
         // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
-        const configObject = yaml.safeLoad(configurationContent);
+        const configObject = yield getConfigurationContents(client, configurationPath);
         // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
         return getLabelGlobMapFromObject(configObject);
     });

@@ -98,17 +98,24 @@ async function getChangedFiles(
   return changedFiles;
 }
 
-async function getLabelGlobs(
+async function getConfigurationContents(
   client: github.GitHub,
   configurationPath: string
-): Promise<Map<string, string[]>> {
+): Promise<any> {
   const configurationContent: string = await fetchContent(
     client,
     configurationPath
   );
 
+  return yaml.safeLoad(configurationContent);
+}
+
+async function getLabelGlobs(
+  client: github.GitHub,
+  configurationPath: string
+): Promise<Map<string, string[]>> {
   // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
-  const configObject: any = yaml.safeLoad(configurationContent);
+  const configObject: any = await getConfigurationContents(client, configurationPath);
 
   // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
   return getLabelGlobMapFromObject(configObject);
