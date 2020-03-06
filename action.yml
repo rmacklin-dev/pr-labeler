@@ -1,10 +1,12 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'PR Labeler'
+description: 'Add labels to new pull requests based on the files that are changed and team mappings'
+author: 'AppFolio'
 inputs:
-  myInput:              # change this
-    description: 'input description here'
-    default: 'default value if applicable'
+  repo-token:
+    description: 'The GITHUB_TOKEN secret'
+  configuration-path:
+    description: 'The path for the label configurations'
+    default: '.github/labeler.yml'
 runs:
   using: 'node12'
   main: 'dist/index.js'
