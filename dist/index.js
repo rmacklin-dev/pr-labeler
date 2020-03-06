@@ -4136,11 +4136,14 @@ function run() {
                 return;
             }
             const client = new github.GitHub(token);
+            core.debug(`fetching configuration from ${configPath}`);
+            // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
+            const configObject = yield getConfigurationContents(client, configPath);
             core.debug(`fetching changed files for pr #${prNumber}`);
             const changedFiles = yield getChangedFiles(client, prNumber);
-            const labelGlobs = yield getLabelGlobs(client, configPath);
+            const labelGlobs = yield getLabelGlobs(configObject);
             core.debug('fetching teams');
-            const teamLabels = new Map(Object.entries((yield getConfigurationContents(client, configPath)).team_labels));
+            const teamLabels = new Map(Object.entries(configObject.team_labels));
             const labels = [];
             for (const [label, globs] of labelGlobs.entries()) {
                 core.debug(`processing ${label}`);
@@ -4188,10 +4191,8 @@ function getConfigurationContents(client, configurationPath) {
         return yaml.safeLoad(configurationContent);
     });
 }
-function getLabelGlobs(client, configurationPath) {
+function getLabelGlobs(configObject) {
     return __awaiter(this, void 0, void 0, function* () {
-        // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
-        const configObject = yield getConfigurationContents(client, configurationPath);
         // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
         return getLabelGlobMapFromObject(configObject.file_pattern_labels);
     });

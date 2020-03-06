@@ -35,18 +35,16 @@ async function run() {
 
     const client = new github.GitHub(token);
 
+    core.debug(`fetching configuration from ${configPath}`);
+    // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
+    const configObject: any = await getConfigurationContents(client, configPath);
+
     core.debug(`fetching changed files for pr #${prNumber}`);
     const changedFiles: string[] = await getChangedFiles(client, prNumber);
-    const labelGlobs: Map<string, string[]> = await getLabelGlobs(
-      client,
-      configPath
-    );
+    const labelGlobs: Map<string, string[]> = await getLabelGlobs(configObject);
 
     core.debug('fetching teams');
-    const teamLabels: Map<string, string[]> = new Map(Object.entries((await getConfigurationContents(
-      client,
-      configPath
-    )).team_labels));
+    const teamLabels: Map<string, string[]> = new Map(Object.entries(configObject.team_labels));
 
     const labels: string[] = [];
     for (const [label, globs] of labelGlobs.entries()) {
@@ -110,12 +108,8 @@ async function getConfigurationContents(
 }
 
 async function getLabelGlobs(
-  client: github.GitHub,
-  configurationPath: string
+  configObject: any
 ): Promise<Map<string, string[]>> {
-  // loads (hopefully) a `{[label:string]: string | string[]}`, but is `any`:
-  const configObject: any = await getConfigurationContents(client, configurationPath);
-
   // transform `any` => `Map<string,string[]>` or throw if yaml is malformed:
   return getLabelGlobMapFromObject(configObject.file_pattern_labels);
 }
