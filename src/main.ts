@@ -89,8 +89,27 @@ async function run() {
     const additionalLabels = getTeamLabel(teamLabelsToMembers, getPrAuthor());
     additionalLabels.forEach(l => labels.push(l));
 
+    const shouldCloseAndReopenIssue = additionalLabels.length > 0;
+    if (shouldCloseAndReopenIssue) {
+      await client.pulls.update({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: prNumber,
+        state: 'closed'
+      });
+    }
+
     if (labels.length > 0) {
       await addLabels(client, prNumber, labels);
+    }
+
+    if (shouldCloseAndReopenIssue) {
+      await client.pulls.update({
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
+        pull_number: prNumber,
+        state: 'open'
+      });
     }
   } catch (error) {
     core.error(error);
