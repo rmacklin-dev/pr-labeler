@@ -4145,7 +4145,9 @@ function run() {
             var teamLabelsToMembers;
             if (configObject.teams_configuration_location) {
                 core.debug(`fetching teams from ${JSON.stringify(configObject.teams_configuration_location)}`);
-                const response = yield client.repos.getContents(Object.assign({ ref: 'master' }, configObject.teams_configuration_location));
+                const externalRepoToken = core.getInput('external-repo-token');
+                const externalRepoClient = externalRepoToken ? new github.GitHub(externalRepoToken) : client;
+                const response = yield externalRepoClient.repos.getContents(Object.assign({ ref: 'master' }, configObject.teams_configuration_location));
                 const teamsData = JSON.parse(Buffer.from(response.data.content, response.data.encoding).toString());
                 teamLabelsToMembers = new Map(Object.entries(teamsData).map(([teamName, teamData]) => {
                     if (teamData.members) {

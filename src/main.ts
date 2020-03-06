@@ -46,7 +46,11 @@ async function run() {
     var teamLabelsToMembers: Map<string, string[]>;
     if (configObject.teams_configuration_location) {
       core.debug(`fetching teams from ${JSON.stringify(configObject.teams_configuration_location)}`);
-      const response: any = await client.repos.getContents({
+
+      const externalRepoToken = core.getInput('external-repo-token');
+      const externalRepoClient = externalRepoToken ? new github.GitHub(externalRepoToken) : client
+
+      const response: any = await externalRepoClient.repos.getContents({
         ref: 'master',
         ...configObject.teams_configuration_location
       });
