@@ -6,7 +6,7 @@ inputs:
     description: 'The GITHUB_TOKEN secret'
   configuration-path:
     description: 'The path for the label configurations'
-    default: '.github/labeler.yml'
+    default: '.github/pr-labeler.yml'
   teams-configuration-path:
     description: 'The path for the teams configuration'
     default: '.github/teams.yml'
