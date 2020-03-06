@@ -4142,8 +4142,7 @@ function run() {
             core.debug(`fetching changed files for pr #${prNumber}`);
             const changedFiles = yield getChangedFiles(client, prNumber);
             const labelGlobs = yield getLabelGlobs(configObject);
-            core.debug('fetching teams');
-            const teamLabels = new Map(Object.entries(configObject.team_labels));
+            const teamLabelsToMembers = new Map(Object.entries(configObject.team_labels));
             const labels = [];
             for (const [label, globs] of labelGlobs.entries()) {
                 core.debug(`processing ${label}`);
@@ -4151,7 +4150,7 @@ function run() {
                     labels.push(label);
                 }
             }
-            const additionalLabels = getTeamLabel(teamLabels, getPrAuthor());
+            const additionalLabels = getTeamLabel(teamLabelsToMembers, getPrAuthor());
             additionalLabels.forEach(l => labels.push(l));
             if (labels.length > 0) {
                 yield addLabels(client, prNumber, labels);

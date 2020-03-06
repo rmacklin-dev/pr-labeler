@@ -43,8 +43,7 @@ async function run() {
     const changedFiles: string[] = await getChangedFiles(client, prNumber);
     const labelGlobs: Map<string, string[]> = await getLabelGlobs(configObject);
 
-    core.debug('fetching teams');
-    const teamLabels: Map<string, string[]> = new Map(Object.entries(configObject.team_labels));
+    const teamLabelsToMembers: Map<string, string[]> = new Map(Object.entries(configObject.team_labels));
 
     const labels: string[] = [];
     for (const [label, globs] of labelGlobs.entries()) {
@@ -54,7 +53,7 @@ async function run() {
       }
     }
 
-    const additionalLabels = getTeamLabel(teamLabels, getPrAuthor());
+    const additionalLabels = getTeamLabel(teamLabelsToMembers, getPrAuthor());
     additionalLabels.forEach(l => labels.push(l));
 
     if (labels.length > 0) {
