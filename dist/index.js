@@ -4111,11 +4111,26 @@ const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
 const yaml = __importStar(__webpack_require__(414));
 const minimatch_1 = __webpack_require__(595);
+function getTeamLabel(labelsConfiguration, author) {
+    const labels = [];
+    for (const [label, authors] of labelsConfiguration.entries())
+        if (authors.includes(author))
+            labels.push(label);
+    return labels;
+}
+function getPrAuthor() {
+    const pullRequest = github.context.payload.pull_request;
+    if (!pullRequest) {
+        return 'unknown';
+    }
+    return pullRequest.user.login;
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const token = core.getInput('repo-token', { required: true });
             const configPath = core.getInput('configuration-path', { required: true });
+            const teamsConfigPath = core.getInput('teams-configuration-path', { required: true });
             const prNumber = getPrNumber();
             if (!prNumber) {
                 console.log('Could not get pull request number from context, exiting');
@@ -4125,6 +4140,8 @@ function run() {
             core.debug(`fetching changed files for pr #${prNumber}`);
             const changedFiles = yield getChangedFiles(client, prNumber);
             const labelGlobs = yield getLabelGlobs(client, configPath);
+            core.debug('fetching teams');
+            const teamLabels = new Map(Object.entries(yaml.safeLoad(yield fetchContent(client, teamsConfigPath))));
             const labels = [];
             for (const [label, globs] of labelGlobs.entries()) {
                 core.debug(`processing ${label}`);
@@ -4132,6 +4149,8 @@ function run() {
                     labels.push(label);
                 }
             }
+            const additionalLabels = getTeamLabel(teamLabels, getPrAuthor());
+            additionalLabels.forEach(l => labels.push(l));
             if (labels.length > 0) {
                 yield addLabels(client, prNumber, labels);
             }

@@ -3,10 +3,30 @@ import * as github from '@actions/github';
 import * as yaml from 'js-yaml';
 import {Minimatch} from 'minimatch';
 
+function getTeamLabel(
+  labelsConfiguration: Map<string, string[]>,
+  author: string
+): string[] {
+  const labels: string[] = []
+  for (const [label, authors] of labelsConfiguration.entries())
+    if (authors.includes(author)) labels.push(label)
+  return labels
+}
+
+function getPrAuthor(): string {
+  const pullRequest = github.context.payload.pull_request
+  if (!pullRequest) {
+    return 'unknown'
+  }
+
+  return pullRequest.user.login
+}
+
 async function run() {
   try {
     const token = core.getInput('repo-token', {required: true});
     const configPath = core.getInput('configuration-path', {required: true});
+    const teamsConfigPath = core.getInput('teams-configuration-path', {required: true});
 
     const prNumber = getPrNumber();
     if (!prNumber) {
@@ -23,6 +43,12 @@ async function run() {
       configPath
     );
 
+    core.debug('fetching teams');
+    const teamLabels: Map<string, string[]> = new Map(Object.entries(yaml.safeLoad(await fetchContent(
+      client,
+      teamsConfigPath
+    ))));
+
     const labels: string[] = [];
     for (const [label, globs] of labelGlobs.entries()) {
       core.debug(`processing ${label}`);
@@ -30,6 +56,9 @@ async function run() {
         labels.push(label);
       }
     }
+
+    const additionalLabels = getTeamLabel(teamLabels, getPrAuthor());
+    additionalLabels.forEach(l => labels.push(l));
 
     if (labels.length > 0) {
       await addLabels(client, prNumber, labels);
