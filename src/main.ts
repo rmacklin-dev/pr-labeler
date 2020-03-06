@@ -220,7 +220,7 @@ async function addLabels(
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,
     issue_number: prNumber,
-    labels: labels
+    labels: labels.map(l => l.replace(/#/g, ''))
   });
 }
 
