@@ -3621,9 +3621,9 @@ function run() {
             const authenticatedUser = authenticatedUserResponse.data.login;
             core.debug(`GitHub client is authenticated as ${authenticatedUser}`);
             core.debug(`Fetching team data from ${teamDataPath}`);
-            const teamData = yield getTeamData(client, teamDataPath);
-            core.debug(`teamData: ${JSON.stringify(teamData)}`);
-            yield synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix);
+            const teams = yield getTeamData(client, teamDataPath);
+            core.debug(`teams: ${JSON.stringify(teams)}`);
+            yield synchronizeTeamData(client, org, authenticatedUser, teams, teamNamePrefix);
         }
         catch (error) {
             core.error(error);
@@ -3631,13 +3631,13 @@ function run() {
         }
     });
 }
-function synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix) {
+function synchronizeTeamData(client, org, authenticatedUser, teams, teamNamePrefix) {
     return __awaiter(this, void 0, void 0, function* () {
-        for (const unprefixedTeamName of Object.keys(teamData)) {
+        for (const unprefixedTeamName of Object.keys(teams)) {
             const teamName = prefixName(unprefixedTeamName, teamNamePrefix);
             const teamSlug = slugify_1.default(teamName, { decamelize: false });
-            const description = teamData[unprefixedTeamName].description;
-            const desiredMembers = teamData[unprefixedTeamName].members.map((m) => m.github);
+            const description = teams[unprefixedTeamName].description;
+            const desiredMembers = teams[unprefixedTeamName].members.map((m) => m.github);
             core.debug(`Desired team members for team slug ${teamSlug}:`);
             core.debug(JSON.stringify(desiredMembers));
             const { existingTeam, existingMembers } = yield getExistingTeamAndMembers(client, org, teamSlug);

@@ -17,11 +17,11 @@ async function run() {
     core.debug(`GitHub client is authenticated as ${authenticatedUser}`)
 
     core.debug(`Fetching team data from ${teamDataPath}`)
-    const teamData: any = await getTeamData(client, teamDataPath)
+    const teams: any = await getTeamData(client, teamDataPath)
 
-    core.debug(`teamData: ${JSON.stringify(teamData)}`)
+    core.debug(`teams: ${JSON.stringify(teams)}`)
 
-    await synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix)
+    await synchronizeTeamData(client, org, authenticatedUser, teams, teamNamePrefix)
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
@@ -32,14 +32,14 @@ async function synchronizeTeamData(
   client: github.GitHub,
   org: string,
   authenticatedUser: string,
-  teamData: any,
+  teams: any,
   teamNamePrefix: string
 ) {
-  for (const unprefixedTeamName of Object.keys(teamData)) {
+  for (const unprefixedTeamName of Object.keys(teams)) {
     const teamName = prefixName(unprefixedTeamName, teamNamePrefix)
     const teamSlug = slugify(teamName, {decamelize: false})
-    const description = teamData[unprefixedTeamName].description
-    const desiredMembers: string[] = teamData[unprefixedTeamName].members.map((m: any) => m.github)
+    const description = teams[unprefixedTeamName].description
+    const desiredMembers: string[] = teams[unprefixedTeamName].members.map((m: any) => m.github)
 
     core.debug(`Desired team members for team slug ${teamSlug}:`)
     core.debug(JSON.stringify(desiredMembers))
