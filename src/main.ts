@@ -12,15 +12,15 @@ async function run() {
 
     core.debug('Fetching authenticated user')
     const authenticatedUserResponse = await client.users.getAuthenticated()
-    const authenticatedUserLogin: string = authenticatedUserResponse.data.login
-    core.debug(`GitHub client is authenticated as ${authenticatedUserLogin}`)
+    const authenticatedUser: string = authenticatedUserResponse.data.login
+    core.debug(`GitHub client is authenticated as ${authenticatedUser}`)
 
     core.debug(`Fetching team data from ${teamDataPath}`)
     const teamData: any = await getTeamData(client, teamDataPath)
 
     core.debug(`teamData: ${JSON.stringify(teamData)}`)
 
-    await synchronizeTeamData(client, org, authenticatedUserLogin, teamData)
+    await synchronizeTeamData(client, org, authenticatedUser, teamData)
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
@@ -30,7 +30,7 @@ async function run() {
 async function synchronizeTeamData(
   client: github.GitHub,
   org: string,
-  authenticatedUserLogin: string,
+  authenticatedUser: string,
   teamData: any
 ) {
   for (const teamName of Object.keys(teamData)) {
@@ -50,7 +50,7 @@ async function synchronizeTeamData(
       await removeFormerTeamMembers(client, org, teamSlug, existingMembers, desiredMembers)
     } else {
       core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`)
-      await createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin)
+      await createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUser)
     }
 
     await addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers)
@@ -94,16 +94,16 @@ async function createTeamWithNoMembers(
   org: string,
   teamName: string,
   teamSlug: string,
-  authenticatedUserLogin: string
+  authenticatedUser: string
 ) {
   await client.teams.create({org, name: teamName, privacy: 'closed'})
 
-  core.debug(`Removing creator (${authenticatedUserLogin}) from ${teamSlug}`)
+  core.debug(`Removing creator (${authenticatedUser}) from ${teamSlug}`)
 
   await client.teams.removeMembershipInOrg({
     org,
     team_slug: teamSlug,
-    username: authenticatedUserLogin
+    username: authenticatedUser
   })
 }
 

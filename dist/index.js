@@ -3617,12 +3617,12 @@ function run() {
             const org = github.context.repo.owner;
             core.debug('Fetching authenticated user');
             const authenticatedUserResponse = yield client.users.getAuthenticated();
-            const authenticatedUserLogin = authenticatedUserResponse.data.login;
-            core.debug(`GitHub client is authenticated as ${authenticatedUserLogin}`);
+            const authenticatedUser = authenticatedUserResponse.data.login;
+            core.debug(`GitHub client is authenticated as ${authenticatedUser}`);
             core.debug(`Fetching team data from ${teamDataPath}`);
             const teamData = yield getTeamData(client, teamDataPath);
             core.debug(`teamData: ${JSON.stringify(teamData)}`);
-            yield synchronizeTeamData(client, org, authenticatedUserLogin, teamData);
+            yield synchronizeTeamData(client, org, authenticatedUser, teamData);
         }
         catch (error) {
             core.error(error);
@@ -3630,7 +3630,7 @@ function run() {
         }
     });
 }
-function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
+function synchronizeTeamData(client, org, authenticatedUser, teamData) {
     return __awaiter(this, void 0, void 0, function* () {
         for (const teamName of Object.keys(teamData)) {
             const teamSlug = slugify_1.default(teamName, { decamelize: false });
@@ -3646,7 +3646,7 @@ function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
             }
             else {
                 core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`);
-                yield createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin);
+                yield createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUser);
             }
             yield addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers);
         }
@@ -3675,14 +3675,14 @@ function addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMember
         }
     });
 }
-function createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin) {
+function createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUser) {
     return __awaiter(this, void 0, void 0, function* () {
         yield client.teams.create({ org, name: teamName, privacy: 'closed' });
-        core.debug(`Removing creator (${authenticatedUserLogin}) from ${teamSlug}`);
+        core.debug(`Removing creator (${authenticatedUser}) from ${teamSlug}`);
         yield client.teams.removeMembershipInOrg({
             org,
             team_slug: teamSlug,
-            username: authenticatedUserLogin
+            username: authenticatedUser
         });
     });
 }
