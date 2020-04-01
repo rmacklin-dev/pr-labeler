@@ -10,13 +10,25 @@ async function run() {
     const client = new github.GitHub(token)
     const org = github.context.repo.owner
 
-    core.debug(`fetching team data from ${teamDataPath}`)
+    core.debug('Fetching authenticated user')
+    const authenticatedUserResponse = await client.users.getAuthenticated()
+    const authenticatedUserLogin: string = authenticatedUserResponse.data.login
+    core.debug(`GitHub client is authenticated as ${authenticatedUserLogin}`)
+
+    core.debug(`Fetching team data from ${teamDataPath}`)
     const teamData: any = await getTeamData(client, teamDataPath)
 
     core.debug(`teamData: ${JSON.stringify(teamData)}`)
 
     Object.keys(teamData).forEach(async function(teamName) {
       const teamSlug = slugify(teamName, {decamelize: false})
+      const desiredMembers: string[] = teamData[teamName].members.map(
+        (m: any) => m.github
+      )
+
+      core.debug(`Desired team members for team slug ${teamSlug}:`)
+      core.debug(JSON.stringify(desiredMembers))
+
       const {existingTeam, existingMembers} = await getExistingTeamAndMembers(
         client,
         org,
@@ -24,13 +36,41 @@ async function run() {
       )
 
       if (existingTeam) {
-        core.debug(`existing team members for team slug ${teamSlug}:`)
+        core.debug(`Existing team members for team slug ${teamSlug}:`)
         core.debug(JSON.stringify(existingMembers))
-        // update team
+
+        existingMembers.forEach(async function(username: string) {
+          if (!desiredMembers.includes(username)) {
+            core.debug(`Removing ${username} from ${teamSlug}`)
+          } else {
+            core.debug(`Keeping ${username} in ${teamSlug}`)
+          }
+        })
       } else {
-        // create new team
-        core.debug(`No team found in ${org} with slug ${teamSlug}`)
+        core.debug(
+          `No team was found in ${org} with slug ${teamSlug}. Creating one.`
+        )
+
+        await client.teams.create({
+          org,
+          name: teamName,
+          privacy: 'closed'
+        })
+
+        core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`)
+
+        await client.teams.removeMembershipInOrg({
+          org,
+          team_slug: teamSlug,
+          username: authenticatedUserLogin
+        })
       }
+
+      desiredMembers.forEach(async function(username) {
+        if (!existingMembers.includes(username)) {
+          core.debug(`Adding ${username} to ${teamSlug}`)
+        }
+      })
     })
   } catch (error) {
     core.error(error)
