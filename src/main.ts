@@ -20,7 +20,7 @@ async function run() {
 
     core.debug(`teamData: ${JSON.stringify(teamData)}`)
 
-    Object.keys(teamData).forEach(async function(teamName) {
+    for (const teamName of Object.keys(teamData)) {
       const teamSlug = slugify(teamName, {decamelize: false})
       const desiredMembers: string[] = teamData[teamName].members.map(
         (m: any) => m.github
@@ -39,13 +39,13 @@ async function run() {
         core.debug(`Existing team members for team slug ${teamSlug}:`)
         core.debug(JSON.stringify(existingMembers))
 
-        existingMembers.forEach(async function(username: string) {
+        for (const username of existingMembers) {
           if (!desiredMembers.includes(username)) {
             core.debug(`Removing ${username} from ${teamSlug}`)
           } else {
             core.debug(`Keeping ${username} in ${teamSlug}`)
           }
-        })
+        }
       } else {
         core.debug(
           `No team was found in ${org} with slug ${teamSlug}. Creating one.`
@@ -66,12 +66,12 @@ async function run() {
         })
       }
 
-      desiredMembers.forEach(async function(username) {
+      for (const username of desiredMembers) {
         if (!existingMembers.includes(username)) {
           core.debug(`Adding ${username} to ${teamSlug}`)
         }
-      })
-    })
+      }
+    }
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
