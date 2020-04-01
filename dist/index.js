@@ -3636,8 +3636,9 @@ function synchronizeTeamData(client, org, authenticatedUser, teams, teamNamePref
         for (const unprefixedTeamName of Object.keys(teams)) {
             const teamName = prefixName(unprefixedTeamName, teamNamePrefix);
             const teamSlug = slugify_1.default(teamName, { decamelize: false });
-            const description = teams[unprefixedTeamName].description;
-            const desiredMembers = teams[unprefixedTeamName].members.map((m) => m.github);
+            const teamData = teams[unprefixedTeamName];
+            const description = teamData.description;
+            const desiredMembers = teamData.members.map((m) => m.github);
             core.debug(`Desired team members for team slug ${teamSlug}:`);
             core.debug(JSON.stringify(desiredMembers));
             const { existingTeam, existingMembers } = yield getExistingTeamAndMembers(client, org, teamSlug);

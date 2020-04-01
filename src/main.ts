@@ -38,8 +38,9 @@ async function synchronizeTeamData(
   for (const unprefixedTeamName of Object.keys(teams)) {
     const teamName = prefixName(unprefixedTeamName, teamNamePrefix)
     const teamSlug = slugify(teamName, {decamelize: false})
-    const description = teams[unprefixedTeamName].description
-    const desiredMembers: string[] = teams[unprefixedTeamName].members.map((m: any) => m.github)
+    const teamData = teams[unprefixedTeamName]
+    const description = teamData.description
+    const desiredMembers: string[] = teamData.members.map((m: any) => m.github)
 
     core.debug(`Desired team members for team slug ${teamSlug}:`)
     core.debug(JSON.stringify(desiredMembers))
