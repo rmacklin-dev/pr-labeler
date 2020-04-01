@@ -35,6 +35,7 @@ async function synchronizeTeamData(
 ) {
   for (const teamName of Object.keys(teamData)) {
     const teamSlug = slugify(teamName, {decamelize: false})
+    const description = teamData[teamName].description
     const desiredMembers: string[] = teamData[teamName].members.map((m: any) => m.github)
 
     core.debug(`Desired team members for team slug ${teamSlug}:`)
@@ -46,11 +47,11 @@ async function synchronizeTeamData(
       core.debug(`Existing team members for team slug ${teamSlug}:`)
       core.debug(JSON.stringify(existingMembers))
 
-      await client.teams.updateInOrg({org, team_slug: teamSlug, name: teamName})
+      await client.teams.updateInOrg({org, team_slug: teamSlug, name: teamName, description})
       await removeFormerTeamMembers(client, org, teamSlug, existingMembers, desiredMembers)
     } else {
       core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`)
-      await createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUser)
+      await createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUser, description)
     }
 
     await addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers)
@@ -94,9 +95,10 @@ async function createTeamWithNoMembers(
   org: string,
   teamName: string,
   teamSlug: string,
-  authenticatedUser: string
+  authenticatedUser: string,
+  description?: string
 ) {
-  await client.teams.create({org, name: teamName, privacy: 'closed'})
+  await client.teams.create({org, name: teamName, description, privacy: 'closed'})
 
   core.debug(`Removing creator (${authenticatedUser}) from ${teamSlug}`)
 
