@@ -3656,11 +3656,7 @@ function removeFormerTeamMembers(client, org, teamSlug, existingMembers, desired
         for (const username of existingMembers) {
             if (!desiredMembers.includes(username)) {
                 core.debug(`Removing ${username} from ${teamSlug}`);
-                yield client.teams.removeMembershipInOrg({
-                    org,
-                    team_slug: teamSlug,
-                    username
-                });
+                yield client.teams.removeMembershipInOrg({ org, team_slug: teamSlug, username });
             }
             else {
                 core.debug(`Keeping ${username} in ${teamSlug}`);
@@ -3673,22 +3669,14 @@ function addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMember
         for (const username of desiredMembers) {
             if (!existingMembers.includes(username)) {
                 core.debug(`Adding ${username} to ${teamSlug}`);
-                yield client.teams.addOrUpdateMembershipInOrg({
-                    org,
-                    team_slug: teamSlug,
-                    username
-                });
+                yield client.teams.addOrUpdateMembershipInOrg({ org, team_slug: teamSlug, username });
             }
         }
     });
 }
 function createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield client.teams.create({
-            org,
-            name: teamName,
-            privacy: 'closed'
-        });
+        yield client.teams.create({ org, name: teamName, privacy: 'closed' });
         core.debug(`Removing creator (${authenticatedUserLogin}) from ${teamSlug}`);
         yield client.teams.removeMembershipInOrg({
             org,
@@ -3702,15 +3690,9 @@ function getExistingTeamAndMembers(client, org, teamSlug) {
         let existingTeam;
         let existingMembers = [];
         try {
-            const teamResponse = yield client.teams.getByName({
-                org,
-                team_slug: teamSlug
-            });
+            const teamResponse = yield client.teams.getByName({ org, team_slug: teamSlug });
             existingTeam = teamResponse.data;
-            const membersResponse = yield client.teams.listMembersInOrg({
-                org,
-                team_slug: teamSlug
-            });
+            const membersResponse = yield client.teams.listMembersInOrg({ org, team_slug: teamSlug });
             existingMembers = membersResponse.data.map(m => m.login);
         }
         catch (error) {
