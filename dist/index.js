@@ -3613,6 +3613,7 @@ function run() {
         try {
             const token = core.getInput('repo-token', { required: true });
             const teamDataPath = core.getInput('team-data-path');
+            const teamNamePrefix = core.getInput('prefix-teams-with');
             const client = new github.GitHub(token);
             const org = github.context.repo.owner;
             core.debug('Fetching authenticated user');
@@ -3622,7 +3623,7 @@ function run() {
             core.debug(`Fetching team data from ${teamDataPath}`);
             const teamData = yield getTeamData(client, teamDataPath);
             core.debug(`teamData: ${JSON.stringify(teamData)}`);
-            yield synchronizeTeamData(client, org, authenticatedUser, teamData);
+            yield synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix);
         }
         catch (error) {
             core.error(error);
@@ -3630,12 +3631,13 @@ function run() {
         }
     });
 }
-function synchronizeTeamData(client, org, authenticatedUser, teamData) {
+function synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix) {
     return __awaiter(this, void 0, void 0, function* () {
-        for (const teamName of Object.keys(teamData)) {
+        for (const unprefixedTeamName of Object.keys(teamData)) {
+            const teamName = prefixName(unprefixedTeamName, teamNamePrefix);
             const teamSlug = slugify_1.default(teamName, { decamelize: false });
-            const description = teamData[teamName].description;
-            const desiredMembers = teamData[teamName].members.map((m) => m.github);
+            const description = teamData[unprefixedTeamName].description;
+            const desiredMembers = teamData[unprefixedTeamName].members.map((m) => m.github);
             core.debug(`Desired team members for team slug ${teamSlug}:`);
             core.debug(JSON.stringify(desiredMembers));
             const { existingTeam, existingMembers } = yield getExistingTeamAndMembers(client, org, teamSlug);
@@ -3652,6 +3654,10 @@ function synchronizeTeamData(client, org, authenticatedUser, teamData) {
             yield addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers);
         }
     });
+}
+function prefixName(unprefixedName, prefix) {
+    const trimmedPrefix = prefix.trim();
+    return trimmedPrefix === '' ? unprefixedName : `${trimmedPrefix} ${unprefixedName}`;
 }
 function removeFormerTeamMembers(client, org, teamSlug, existingMembers, desiredMembers) {
     return __awaiter(this, void 0, void 0, function* () {

@@ -6,6 +6,7 @@ async function run() {
   try {
     const token = core.getInput('repo-token', {required: true})
     const teamDataPath = core.getInput('team-data-path')
+    const teamNamePrefix = core.getInput('prefix-teams-with')
 
     const client = new github.GitHub(token)
     const org = github.context.repo.owner
@@ -20,7 +21,7 @@ async function run() {
 
     core.debug(`teamData: ${JSON.stringify(teamData)}`)
 
-    await synchronizeTeamData(client, org, authenticatedUser, teamData)
+    await synchronizeTeamData(client, org, authenticatedUser, teamData, teamNamePrefix)
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
@@ -31,12 +32,14 @@ async function synchronizeTeamData(
   client: github.GitHub,
   org: string,
   authenticatedUser: string,
-  teamData: any
+  teamData: any,
+  teamNamePrefix: string
 ) {
-  for (const teamName of Object.keys(teamData)) {
+  for (const unprefixedTeamName of Object.keys(teamData)) {
+    const teamName = prefixName(unprefixedTeamName, teamNamePrefix)
     const teamSlug = slugify(teamName, {decamelize: false})
-    const description = teamData[teamName].description
-    const desiredMembers: string[] = teamData[teamName].members.map((m: any) => m.github)
+    const description = teamData[unprefixedTeamName].description
+    const desiredMembers: string[] = teamData[unprefixedTeamName].members.map((m: any) => m.github)
 
     core.debug(`Desired team members for team slug ${teamSlug}:`)
     core.debug(JSON.stringify(desiredMembers))
@@ -56,6 +59,12 @@ async function synchronizeTeamData(
 
     await addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers)
   }
+}
+
+function prefixName(unprefixedName: string, prefix: string): string {
+  const trimmedPrefix = prefix.trim()
+
+  return trimmedPrefix === '' ? unprefixedName : `${trimmedPrefix} ${unprefixedName}`
 }
 
 async function removeFormerTeamMembers(
