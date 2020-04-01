@@ -52,18 +52,13 @@ async function synchronizeTeamData(
       core.debug(`Existing team members for team slug ${teamSlug}:`)
       core.debug(JSON.stringify(existingMembers))
 
-      for (const username of existingMembers) {
-        if (!desiredMembers.includes(username)) {
-          core.debug(`Removing ${username} from ${teamSlug}`)
-          await client.teams.removeMembershipInOrg({
-            org,
-            team_slug: teamSlug,
-            username
-          })
-        } else {
-          core.debug(`Keeping ${username} in ${teamSlug}`)
-        }
-      }
+      await removeFormerTeamMembers(
+        client,
+        org,
+        teamSlug,
+        existingMembers,
+        desiredMembers
+      )
     } else {
       core.debug(
         `No team was found in ${org} with slug ${teamSlug}. Creating one.`
@@ -77,15 +72,52 @@ async function synchronizeTeamData(
       )
     }
 
-    for (const username of desiredMembers) {
-      if (!existingMembers.includes(username)) {
-        core.debug(`Adding ${username} to ${teamSlug}`)
-        await client.teams.addOrUpdateMembershipInOrg({
-          org,
-          team_slug: teamSlug,
-          username
-        })
-      }
+    await addNewTeamMembers(
+      client,
+      org,
+      teamSlug,
+      existingMembers,
+      desiredMembers
+    )
+  }
+}
+
+async function removeFormerTeamMembers(
+  client: github.GitHub,
+  org: string,
+  teamSlug: string,
+  existingMembers: string[],
+  desiredMembers: string[]
+) {
+  for (const username of existingMembers) {
+    if (!desiredMembers.includes(username)) {
+      core.debug(`Removing ${username} from ${teamSlug}`)
+      await client.teams.removeMembershipInOrg({
+        org,
+        team_slug: teamSlug,
+        username
+      })
+    } else {
+      core.debug(`Keeping ${username} in ${teamSlug}`)
+    }
+  }
+}
+
+async function addNewTeamMembers(
+  client: github.GitHub,
+  org: string,
+  teamSlug: string,
+  existingMembers: string[],
+  desiredMembers: string[]
+) {
+  for (const username of desiredMembers) {
+    if (!existingMembers.includes(username)) {
+      core.debug(`Adding ${username} to ${teamSlug}`)
+      await client.teams.addOrUpdateMembershipInOrg({
+        org,
+        team_slug: teamSlug,
+        username
+      })
     }
   }
 }

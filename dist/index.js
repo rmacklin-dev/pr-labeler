@@ -3641,33 +3641,43 @@ function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
             if (existingTeam) {
                 core.debug(`Existing team members for team slug ${teamSlug}:`);
                 core.debug(JSON.stringify(existingMembers));
-                for (const username of existingMembers) {
-                    if (!desiredMembers.includes(username)) {
-                        core.debug(`Removing ${username} from ${teamSlug}`);
-                        yield client.teams.removeMembershipInOrg({
-                            org,
-                            team_slug: teamSlug,
-                            username
-                        });
-                    }
-                    else {
-                        core.debug(`Keeping ${username} in ${teamSlug}`);
-                    }
-                }
+                yield removeFormerTeamMembers(client, org, teamSlug, existingMembers, desiredMembers);
             }
             else {
                 core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`);
                 yield createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin);
             }
-            for (const username of desiredMembers) {
-                if (!existingMembers.includes(username)) {
-                    core.debug(`Adding ${username} to ${teamSlug}`);
-                    yield client.teams.addOrUpdateMembershipInOrg({
-                        org,
-                        team_slug: teamSlug,
-                        username
-                    });
-                }
+            yield addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers);
+        }
+    });
+}
+function removeFormerTeamMembers(client, org, teamSlug, existingMembers, desiredMembers) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const username of existingMembers) {
+            if (!desiredMembers.includes(username)) {
+                core.debug(`Removing ${username} from ${teamSlug}`);
+                yield client.teams.removeMembershipInOrg({
+                    org,
+                    team_slug: teamSlug,
+                    username
+                });
+            }
+            else {
+                core.debug(`Keeping ${username} in ${teamSlug}`);
+            }
+        }
+    });
+}
+function addNewTeamMembers(client, org, teamSlug, existingMembers, desiredMembers) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const username of desiredMembers) {
+            if (!existingMembers.includes(username)) {
+                core.debug(`Adding ${username} to ${teamSlug}`);
+                yield client.teams.addOrUpdateMembershipInOrg({
+                    org,
+                    team_slug: teamSlug,
+                    username
+                });
             }
         }
     });
