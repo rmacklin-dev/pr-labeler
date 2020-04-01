@@ -3622,49 +3622,59 @@ function run() {
             core.debug(`Fetching team data from ${teamDataPath}`);
             const teamData = yield getTeamData(client, teamDataPath);
             core.debug(`teamData: ${JSON.stringify(teamData)}`);
-            for (const teamName of Object.keys(teamData)) {
-                const teamSlug = slugify_1.default(teamName, { decamelize: false });
-                const desiredMembers = teamData[teamName].members.map((m) => m.github);
-                core.debug(`Desired team members for team slug ${teamSlug}:`);
-                core.debug(JSON.stringify(desiredMembers));
-                const { existingTeam, existingMembers } = yield getExistingTeamAndMembers(client, org, teamSlug);
-                if (existingTeam) {
-                    core.debug(`Existing team members for team slug ${teamSlug}:`);
-                    core.debug(JSON.stringify(existingMembers));
-                    for (const username of existingMembers) {
-                        if (!desiredMembers.includes(username)) {
-                            core.debug(`Removing ${username} from ${teamSlug}`);
-                        }
-                        else {
-                            core.debug(`Keeping ${username} in ${teamSlug}`);
-                        }
-                    }
-                }
-                else {
-                    core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`);
-                    yield client.teams.create({
-                        org,
-                        name: teamName,
-                        privacy: 'closed'
-                    });
-                    core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`);
-                    yield client.teams.removeMembershipInOrg({
-                        org,
-                        team_slug: teamSlug,
-                        username: authenticatedUserLogin
-                    });
-                }
-                for (const username of desiredMembers) {
-                    if (!existingMembers.includes(username)) {
-                        core.debug(`Adding ${username} to ${teamSlug}`);
-                    }
-                }
-            }
+            yield synchronizeTeamData(client, org, authenticatedUserLogin, teamData);
         }
         catch (error) {
             core.error(error);
             core.setFailed(error.message);
         }
+    });
+}
+function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
+    return __awaiter(this, void 0, void 0, function* () {
+        for (const teamName of Object.keys(teamData)) {
+            const teamSlug = slugify_1.default(teamName, { decamelize: false });
+            const desiredMembers = teamData[teamName].members.map((m) => m.github);
+            core.debug(`Desired team members for team slug ${teamSlug}:`);
+            core.debug(JSON.stringify(desiredMembers));
+            const { existingTeam, existingMembers } = yield getExistingTeamAndMembers(client, org, teamSlug);
+            if (existingTeam) {
+                core.debug(`Existing team members for team slug ${teamSlug}:`);
+                core.debug(JSON.stringify(existingMembers));
+                for (const username of existingMembers) {
+                    if (!desiredMembers.includes(username)) {
+                        core.debug(`Removing ${username} from ${teamSlug}`);
+                    }
+                    else {
+                        core.debug(`Keeping ${username} in ${teamSlug}`);
+                    }
+                }
+            }
+            else {
+                core.debug(`No team was found in ${org} with slug ${teamSlug}. Creating one.`);
+                yield createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin);
+            }
+            for (const username of desiredMembers) {
+                if (!existingMembers.includes(username)) {
+                    core.debug(`Adding ${username} to ${teamSlug}`);
+                }
+            }
+        }
+    });
+}
+function createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedUserLogin) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield client.teams.create({
+            org,
+            name: teamName,
+            privacy: 'closed'
+        });
+        core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`);
+        yield client.teams.removeMembershipInOrg({
+            org,
+            team_slug: teamSlug,
+            username: authenticatedUserLogin
+        });
     });
 }
 function getExistingTeamAndMembers(client, org, teamSlug) {

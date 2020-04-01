@@ -20,62 +20,86 @@ async function run() {
 
     core.debug(`teamData: ${JSON.stringify(teamData)}`)
 
-    for (const teamName of Object.keys(teamData)) {
-      const teamSlug = slugify(teamName, {decamelize: false})
-      const desiredMembers: string[] = teamData[teamName].members.map(
-        (m: any) => m.github
-      )
-
-      core.debug(`Desired team members for team slug ${teamSlug}:`)
-      core.debug(JSON.stringify(desiredMembers))
-
-      const {existingTeam, existingMembers} = await getExistingTeamAndMembers(
-        client,
-        org,
-        teamSlug
-      )
-
-      if (existingTeam) {
-        core.debug(`Existing team members for team slug ${teamSlug}:`)
-        core.debug(JSON.stringify(existingMembers))
-
-        for (const username of existingMembers) {
-          if (!desiredMembers.includes(username)) {
-            core.debug(`Removing ${username} from ${teamSlug}`)
-          } else {
-            core.debug(`Keeping ${username} in ${teamSlug}`)
-          }
-        }
-      } else {
-        core.debug(
-          `No team was found in ${org} with slug ${teamSlug}. Creating one.`
-        )
-
-        await client.teams.create({
-          org,
-          name: teamName,
-          privacy: 'closed'
-        })
-
-        core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`)
-
-        await client.teams.removeMembershipInOrg({
-          org,
-          team_slug: teamSlug,
-          username: authenticatedUserLogin
-        })
-      }
-
-      for (const username of desiredMembers) {
-        if (!existingMembers.includes(username)) {
-          core.debug(`Adding ${username} to ${teamSlug}`)
-        }
-      }
-    }
+    await synchronizeTeamData(client, org, authenticatedUserLogin, teamData)
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
   }
+}
+
+async function synchronizeTeamData(
+  client: github.GitHub,
+  org: string,
+  authenticatedUserLogin: string,
+  teamData: any
+) {
+  for (const teamName of Object.keys(teamData)) {
+    const teamSlug = slugify(teamName, {decamelize: false})
+    const desiredMembers: string[] = teamData[teamName].members.map(
+      (m: any) => m.github
+    )
+
+    core.debug(`Desired team members for team slug ${teamSlug}:`)
+    core.debug(JSON.stringify(desiredMembers))
+
+    const {existingTeam, existingMembers} = await getExistingTeamAndMembers(
+      client,
+      org,
+      teamSlug
+    )
+
+    if (existingTeam) {
+      core.debug(`Existing team members for team slug ${teamSlug}:`)
+      core.debug(JSON.stringify(existingMembers))
+
+      for (const username of existingMembers) {
+        if (!desiredMembers.includes(username)) {
+          core.debug(`Removing ${username} from ${teamSlug}`)
+        } else {
+          core.debug(`Keeping ${username} in ${teamSlug}`)
+        }
+      }
+    } else {
+      core.debug(
+        `No team was found in ${org} with slug ${teamSlug}. Creating one.`
+      )
+      await createTeamWithNoMembers(
+        client,
+        org,
+        teamName,
+        teamSlug,
+        authenticatedUserLogin
+      )
+    }
+
+    for (const username of desiredMembers) {
+      if (!existingMembers.includes(username)) {
+        core.debug(`Adding ${username} to ${teamSlug}`)
+      }
+    }
+  }
+}
+
+async function createTeamWithNoMembers(
+  client: github.GitHub,
+  org: string,
+  teamName: string,
+  teamSlug: string,
+  authenticatedUserLogin: string
+) {
+  await client.teams.create({
+    org,
+    name: teamName,
+    privacy: 'closed'
+  })
+
+  core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`)
+
+  await client.teams.removeMembershipInOrg({
+    org,
+    team_slug: teamSlug,
+    username: authenticatedUserLogin
+  })
 }
 
 async function getExistingTeamAndMembers(
