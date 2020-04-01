@@ -3644,6 +3644,11 @@ function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
                 for (const username of existingMembers) {
                     if (!desiredMembers.includes(username)) {
                         core.debug(`Removing ${username} from ${teamSlug}`);
+                        yield client.teams.removeMembershipInOrg({
+                            org,
+                            team_slug: teamSlug,
+                            username
+                        });
                     }
                     else {
                         core.debug(`Keeping ${username} in ${teamSlug}`);
@@ -3657,6 +3662,11 @@ function synchronizeTeamData(client, org, authenticatedUserLogin, teamData) {
             for (const username of desiredMembers) {
                 if (!existingMembers.includes(username)) {
                     core.debug(`Adding ${username} to ${teamSlug}`);
+                    yield client.teams.addOrUpdateMembershipInOrg({
+                        org,
+                        team_slug: teamSlug,
+                        username
+                    });
                 }
             }
         }
@@ -3669,7 +3679,7 @@ function createTeamWithNoMembers(client, org, teamName, teamSlug, authenticatedU
             name: teamName,
             privacy: 'closed'
         });
-        core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`);
+        core.debug(`Removing creator (${authenticatedUserLogin}) from ${teamSlug}`);
         yield client.teams.removeMembershipInOrg({
             org,
             team_slug: teamSlug,

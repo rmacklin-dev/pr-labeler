@@ -55,6 +55,11 @@ async function synchronizeTeamData(
       for (const username of existingMembers) {
         if (!desiredMembers.includes(username)) {
           core.debug(`Removing ${username} from ${teamSlug}`)
+          await client.teams.removeMembershipInOrg({
+            org,
+            team_slug: teamSlug,
+            username
+          })
         } else {
           core.debug(`Keeping ${username} in ${teamSlug}`)
         }
@@ -75,6 +80,11 @@ async function synchronizeTeamData(
     for (const username of desiredMembers) {
       if (!existingMembers.includes(username)) {
         core.debug(`Adding ${username} to ${teamSlug}`)
+        await client.teams.addOrUpdateMembershipInOrg({
+          org,
+          team_slug: teamSlug,
+          username
+        })
       }
     }
   }
@@ -93,7 +103,7 @@ async function createTeamWithNoMembers(
     privacy: 'closed'
   })
 
-  core.debug(`Removing ${authenticatedUserLogin} from ${teamSlug}`)
+  core.debug(`Removing creator (${authenticatedUserLogin}) from ${teamSlug}`)
 
   await client.teams.removeMembershipInOrg({
     org,
